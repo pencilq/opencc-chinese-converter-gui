@@ -1,10 +1,17 @@
-name: Build and Release
+name: Build and Release (DISABLED)
+
+# DISABLED - This workflow was causing build failures
+# Use the simple alternatives instead:
+# 1. simple-release.yml - for automated building
+# 2. build_release.py - for local building
+# 3. release_with_gh_cli.py - for local build + GitHub CLI release
 
 on:
-  push:
-    tags:
-      - 'v*'  # 当推送标签时触发（如 v1.0.0, v1.1.0）
-  workflow_dispatch:  # 允许手动触发
+  # Commented out to disable automatic triggers
+  # push:
+  #   tags:
+  #     - 'v*'
+  workflow_dispatch:  # Keep manual trigger for testing
 
 jobs:
   build-windows:
