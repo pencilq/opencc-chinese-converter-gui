@@ -507,40 +507,49 @@ class OpenCCGUI:
         
         self.column_vars.clear()
         
-        if self.file_data is not None and hasattr(self.file_data, 'columns'):
-            columns = self.file_data.columns.tolist()
-            for i, col in enumerate(columns):
-                var = tk.BooleanVar()
-                var.trace('w', self.on_column_selection_change)
-                self.column_vars[col] = var
-                
-                # Create frame for each checkbox with sample data
-                checkbox_frame = ttk.Frame(self.column_scrollable_frame)
-                checkbox_frame.grid(row=i, column=0, sticky="ew", padx=5, pady=2)
-                checkbox_frame.columnconfigure(1, weight=1)
-                
-                # Checkbox
-                cb = ttk.Checkbutton(checkbox_frame, variable=var)
-                cb.grid(row=0, column=0, sticky="w")
-                
-                # Column name and sample data
-                sample_text = ""
-                if len(self.file_data) > 0:
-                    try:
-                        sample_val = str(self.file_data[col].iloc[0])
-                        sample_text = sample_val[:20] + "..." if len(sample_val) > 20 else sample_val
-                    except:
-                        sample_text = "N/A"
-                
-                col_label = ttk.Label(checkbox_frame, 
-                                     text=f"{col} (示例: {sample_text})")
-                col_label.grid(row=0, column=1, sticky="w", padx=(5, 0))
-                
-                # Make the checkbox frame expand
-                self.column_scrollable_frame.rowconfigure(i, weight=0)
+        if (self.file_data is not None and 
+            hasattr(self.file_data, 'columns') and 
+            hasattr(self.file_data, 'empty') and 
+            not self.file_data.empty):
             
-            self.column_scrollable_frame.columnconfigure(0, weight=1)
-            self.update_selection_count()
+            try:
+                columns = self.file_data.columns.tolist()
+                for i, col in enumerate(columns):
+                    var = tk.BooleanVar()
+                    var.trace('w', self.on_column_selection_change)
+                    self.column_vars[col] = var
+                    
+                    # Create frame for each checkbox with sample data
+                    checkbox_frame = ttk.Frame(self.column_scrollable_frame)
+                    checkbox_frame.grid(row=i, column=0, sticky="ew", padx=5, pady=2)
+                    checkbox_frame.columnconfigure(1, weight=1)
+                    
+                    # Checkbox
+                    cb = ttk.Checkbutton(checkbox_frame, variable=var)
+                    cb.grid(row=0, column=0, sticky="w")
+                    
+                    # Column name and sample data
+                    sample_text = ""
+                    if len(self.file_data) > 0:
+                        try:
+                            sample_val = str(self.file_data[col].iloc[0])
+                            sample_text = sample_val[:20] + "..." if len(sample_val) > 20 else sample_val
+                        except (IndexError, KeyError, AttributeError):
+                            sample_text = "N/A"
+                    
+                    col_label = ttk.Label(checkbox_frame, 
+                                         text=f"{col} (示例: {sample_text})")
+                    col_label.grid(row=0, column=1, sticky="w", padx=(5, 0))
+                    
+                    # Make the checkbox frame expand
+                    self.column_scrollable_frame.rowconfigure(i, weight=0)
+                
+                self.column_scrollable_frame.columnconfigure(0, weight=1)
+                self.update_selection_count()
+            except Exception as e:
+                # Show error message when column setup fails
+                error_label = ttk.Label(self.column_scrollable_frame, text=f"列设置错误: {str(e)}")
+                error_label.grid(row=0, column=0, pady=20)
         else:
             # Show message when no Excel data
             no_data_label = ttk.Label(self.column_scrollable_frame, text="没有可用列")
@@ -607,22 +616,29 @@ class OpenCCGUI:
                 return
             
             # Check if file_data is empty DataFrame
-            if hasattr(self.file_data, 'empty') and self.file_data.empty:
+            if self.file_data is not None and hasattr(self.file_data, 'empty') and self.file_data.empty:
                 self.preview_text.insert(tk.END, "文件为空或没有数据。")
                 return
             
             if self.file_type.get() == 'excel':
-                if not hasattr(self.file_data, 'columns'):
+                if self.file_data is None or not hasattr(self.file_data, 'columns'):
                     self.preview_text.insert(tk.END, "无效的 Excel 数据。")
                     return
                     
                 selected_cols = self.get_selected_columns()
                 if not selected_cols:
-                    available_cols = ", ".join(self.file_data.columns.tolist())
-                    self.preview_text.insert(tk.END, f"请选择至少一列进行转换。\n\n可用列: {available_cols}")
+                    if hasattr(self.file_data, 'columns'):
+                        available_cols = ", ".join(self.file_data.columns.tolist())
+                        self.preview_text.insert(tk.END, f"请选择至少一列进行转换。\n\n可用列: {available_cols}")
+                    else:
+                        self.preview_text.insert(tk.END, "请选择至少一列进行转换。")
                     return
                 
-                preview_data = self.file_data.head(5).copy()
+                if hasattr(self.file_data, 'head'):
+                    preview_data = self.file_data.head(5).copy()
+                else:
+                    self.preview_text.insert(tk.END, "无效的 Excel 数据格式。")
+                    return
                 for col in selected_cols:
                     if col in preview_data.columns:
                         preview_data[col] = preview_data[col].astype(str).apply(
@@ -634,8 +650,11 @@ class OpenCCGUI:
                     self.preview_text.insert(tk.END, f"列 '{selected_cols[0]}' 的转换结果（前5行）：\n")
                     self.preview_text.insert(tk.END, "=" * 40 + "\n")
                     # Only show the converted column values
-                    for idx, value in preview_data[selected_cols[0]].items():
-                        self.preview_text.insert(tk.END, f"{str(value)}\n")
+                    if selected_cols[0] in preview_data.columns:
+                        for idx, value in preview_data[selected_cols[0]].items():
+                            self.preview_text.insert(tk.END, f"{str(value)}\n")
+                    else:
+                        self.preview_text.insert(tk.END, "所选列不存在于数据中。\n")
                 else:
                     self.preview_text.insert(tk.END, f"多列转换结果（{len(selected_cols)}列，前5行）：\n")
                     self.preview_text.insert(tk.END, "=" * 50 + "\n")
@@ -649,11 +668,17 @@ class OpenCCGUI:
                     for idx in range(min(5, len(preview_data))):
                         row_values = []
                         for col in selected_cols:
-                            value = str(preview_data[col].iloc[idx])
-                            # Truncate long values for display
-                            if len(value) > 15:
-                                value = value[:12] + "..."
-                            row_values.append(value)
+                            if col in preview_data.columns:
+                                try:
+                                    value = str(preview_data[col].iloc[idx])
+                                    # Truncate long values for display
+                                    if len(value) > 15:
+                                        value = value[:12] + "..."
+                                    row_values.append(value)
+                                except (IndexError, KeyError):
+                                    row_values.append("N/A")
+                            else:
+                                row_values.append("N/A")
                         
                         row_text = " | ".join(row_values)
                         self.preview_text.insert(tk.END, f"{row_text}\n")
@@ -721,7 +746,7 @@ class OpenCCGUI:
             self.root.after(0, lambda: self.progress_var.set("正在转换文件..."))
             
             if self.file_type.get() == 'excel':
-                if not hasattr(self.file_data, 'columns'):
+                if self.file_data is None or not hasattr(self.file_data, 'columns'):
                     self.root.after(0, lambda: messagebox.showerror("错误", "无效的 Excel 数据。"))
                     return
                     
@@ -731,17 +756,26 @@ class OpenCCGUI:
                     return
                 
                 # Convert Excel file - multiple columns
-                converted_data = self.file_data.copy()
+                if hasattr(self.file_data, 'copy'):
+                    converted_data = self.file_data.copy()
+                else:
+                    self.root.after(0, lambda: messagebox.showerror("错误", "无法复制 Excel 数据。"))
+                    return
                 total_rows = len(converted_data)
                 total_operations = total_rows * len(selected_cols)
                 current_operation = 0
                 
                 for col_idx, col in enumerate(selected_cols):
-                    if col in converted_data.columns:
+                    if hasattr(converted_data, 'columns') and col in converted_data.columns:
                         for row_idx in range(len(converted_data)):
-                            value = converted_data.iloc[row_idx, converted_data.columns.get_loc(col)]
-                            if pd.notna(value) and str(value) != 'nan' and str(value).strip():
-                                converted_data.iloc[row_idx, converted_data.columns.get_loc(col)] = self.converter.convert(str(value))
+                            try:
+                                col_loc = converted_data.columns.get_loc(col)
+                                value = converted_data.iloc[row_idx, col_loc]
+                                if pd.notna(value) and str(value) != 'nan' and str(value).strip():
+                                    converted_data.iloc[row_idx, col_loc] = self.converter.convert(str(value))
+                            except (IndexError, KeyError, AttributeError) as e:
+                                # Skip problematic cells and continue
+                                continue
                             
                             current_operation += 1
                             # Update progress
@@ -751,7 +785,11 @@ class OpenCCGUI:
                             self.root.after(0, lambda pct=progress_percentage: self.progress_bar.configure(value=pct))
                 
                 # Save Excel file
-                converted_data.to_excel(self.output_file_path.get(), index=False)
+                if hasattr(converted_data, 'to_excel'):
+                    converted_data.to_excel(self.output_file_path.get(), index=False)
+                else:
+                    self.root.after(0, lambda: messagebox.showerror("错误", "无法保存 Excel 文件。"))
+                    return
                 
             elif self.file_type.get() == 'word':
                 # Convert Word file
