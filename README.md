@@ -54,7 +54,7 @@ A modern, user-friendly graphical interface for converting Chinese text between 
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/opencc-chinese-converter-gui.git
+git clone https://github.com/pencilq/opencc-chinese-converter-gui.git
 cd opencc-chinese-converter-gui
 
 # Install dependencies
@@ -259,7 +259,7 @@ We welcome contributions to improve this project! Here's how you can help:
 
 ```bash
 # Clone your fork
-git clone https://github.com/yourusername/opencc-chinese-converter-gui.git
+git clone https://github.com/pencilq/opencc-chinese-converter-gui.git
 cd opencc-chinese-converter-gui
 
 # Create development environment
@@ -341,7 +341,7 @@ pip install python-docx
 
 If you're still experiencing issues:
 
-1. **Check the [Issues](https://github.com/yourusername/opencc-chinese-converter-gui/issues)** page
+1. **Check the [Issues](https://github.com/pencilq/opencc-chinese-converter-gui/issues) ** page
 2. **Create a new issue** with detailed information
 3. **Include error messages** and system information
 
