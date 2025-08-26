@@ -1,46 +1,238 @@
-# OpenCC Chinese Converter GUI
+# OpenCC 中文转换器 GUI
 
 [![Python](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)]()
 
-A modern, user-friendly graphical interface for converting Chinese text between Simplified and Traditional Chinese using OpenCC (Open Chinese Convert). This application provides comprehensive file format support with an intuitive GUI for batch text conversion.
+一个现代化、用户友好的图形界面应用程序，使用 OpenCC（开放中文转换）在简体中文和繁体中文之间进行文本转换。本应用程序提供全面的文件格式支持，具有直观的 GUI 界面，可进行批量文本转换。
 
-## Table of Contents
+## 目录
 
-- [Features](#features)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Usage Guide](#usage-guide)
-- [Supported File Formats](#supported-file-formats)
-- [Conversion Modes](#conversion-modes)
-- [Screenshots](#screenshots)
-- [Contributing](#contributing)
-- [Troubleshooting](#troubleshooting)
-- [License](#license)
+- [功能特性](#功能特性)
+- [安装方法](#安装方法)
+- [快速开始](#快速开始)
+- [使用指南](#使用指南)
+- [支持的文件格式](#支持的文件格式)
+- [转换模式](#转换模式)
+- [界面截图](#界面截图)
+- [贡献指南](#贡献指南)
+- [故障排除](#故障排除)
+- [许可证](#许可证)
 
-## Features
+## 功能特性
 
-### Core Functionality
-- **Multi-format Support**: Excel (.xlsx, .xls), Word (.docx), and Text (.txt) files
-- **Column-level Control**: Select specific Excel columns for conversion
-- **Real-time Preview**: Preview conversion results before processing
-- **Batch Processing**: Convert entire documents while preserving formatting
-- **Progress Tracking**: Real-time progress updates for large files
+### 核心功能
+- **多格式支持**：Excel (.xlsx, .xls)、Word (.docx) 和文本 (.txt) 文件
+- **列级控制**：选择特定的 Excel 列进行转换
+- **实时预览**：处理前预览转换结果
+- **批量处理**：转换整个文档同时保持格式
+- **进度跟踪**：大文件的实时进度更新
 
-### User Experience
-- **Intuitive Interface**: Clean two-column layout with logical workflow
-- **Auto-detection**: Automatic file type detection and output naming
-- **Multi-layer Settings**: Granular control over conversion parameters
-- **Cross-platform**: Works on Windows, macOS, and Linux
-- **Console-free**: Automatic console window hiding on Windows
+### 用户体验
+- **直观界面**：清晰的两列布局，逻辑工作流程
+- **自动检测**：自动文件类型检测和输出命名
+- **多层设置**：对转换参数的精细控制
+- **跨平台**：适用于 Windows、macOS 和 Linux
+- **无控制台**：Windows 上自动隐藏控制台窗口
 
-### Advanced Features
-- **Multi-column Selection**: Convert multiple Excel columns simultaneously
-- **Format Preservation**: Maintains document structure and formatting
-- **Error Handling**: Comprehensive validation and user feedback
-- **Direct Text Input**: Convert text without file operations
-- **Threaded Processing**: Non-blocking conversion for large files
+### 高级功能
+- **多列选择**：同时转换多个 Excel 列
+- **格式保持**：维护文档结构和格式
+- **错误处理**：全面的验证和用户反馈
+- **直接文本输入**：无需文件操作即可转换文本
+- **线程处理**：大文件的非阻塞转换
+
+## 安装方法
+
+### 系统要求
+
+- Python 3.7 或更高版本
+- Windows 10/11、macOS 10.14+ 或 Linux (Ubuntu 18.04+)
+- 100MB 可用磁盘空间
+
+### 方法一：从 GitHub 克隆（推荐）
+
+```bash
+# 克隆仓库
+git clone https://github.com/pencilq/opencc-chinese-converter-gui.git
+cd opencc-chinese-converter-gui
+
+# 安装依赖
+pip install -r requirements.txt
+
+# 运行应用程序
+python opencc-py-gui.py
+```
+
+### 方法二：手动安装
+
+1. **下载源代码**
+   - 从 GitHub 下载并解压 ZIP 文件
+   - 或使用上述 Git 克隆方法
+
+2. **安装 Python 依赖**
+   ```bash
+   pip install opencc-python-reimplemented pandas openpyxl python-docx
+   ```
+
+3. **验证安装**
+   ```bash
+   python -c "import opencc, pandas, openpyxl, docx; print('所有依赖项已成功安装')"
+   ```
+
+### 安装故障排除
+
+如果遇到问题，请尝试单独安装依赖项：
+
+```bash
+pip install opencc-python-reimplemented
+pip install pandas
+pip install openpyxl
+pip install python-docx
+```
+
+对于 Python 环境问题，建议使用虚拟环境：
+
+```bash
+python -m venv opencc-env
+source opencc-env/bin/activate  # Windows 上：opencc-env\Scripts\activate
+pip install -r requirements.txt
+```
+
+## 快速开始
+
+1. **启动应用程序**
+   ```bash
+   python opencc-py-gui.py
+   ```
+
+2. **转换文件**
+   - 点击"浏览"选择输入文件
+   - 选择转换设置（源语言/目标语言）
+   - 预览转换结果
+   - 点击"转换文件"开始处理
+
+3. **直接转换文本**
+   - 在"直接文本输入"区域输入文本
+   - 选择转换模式
+   - 在预览区域查看结果
+   - 复制转换后的文本
+
+## 使用指南
+
+### 界面概览
+
+应用程序采用清晰的两列布局：
+- **左列**：文件选择、转换设置和控制
+- **右列**：预览区域和进度跟踪
+
+### 分步工作流程
+
+#### 基于文件的转换
+
+1. **选择输入文件**
+   - 点击"输入文件"旁的"浏览"
+   - 选择您的 Excel、Word 或文本文件
+   - 应用程序自动检测文件类型
+
+2. **配置转换设置**
+   - **原文**：选择"简体"或"繁体"
+   - **目标**：选择"简体"或"繁体"
+   - **字形**：选择标准（OpenCC、香港、台湾）
+   - **当地词汇**：启用/禁用短语转换
+
+3. **列选择（仅 Excel）**
+   - 选择包含中文文本的列
+   - 使用"全选"或"取消全选"快速操作
+   - 预览显示选定的列数
+
+4. **预览和转换**
+   - 在预览区域查看转换结果
+   - 点击"转换文件"处理整个文档
+   - 通过进度条监控进度
+
+#### 直接文本转换
+
+1. **输入文本**
+   - 在输入区域输入或粘贴中文文本
+   - 文本自动触发预览
+
+2. **选择转换模式**
+   - 选择适当的源和目标设置
+   - 查看实时转换结果
+
+3. **复制结果**
+   - 点击"复制"将转换文本复制到剪贴板
+   - 无需文件操作
+
+## 支持的文件格式
+
+### Excel 文件 (.xlsx, .xls)
+- **列选择**：选择特定列进行转换
+- **格式保持**：维护单元格格式、公式和结构
+- **多列支持**：同时转换多个列
+- **输出**：Excel 格式 (.xlsx)，UTF-8 编码
+
+### Word 文档 (.docx)
+- **全面转换**：处理段落和表格内容
+- **结构保持**：维护文档格式和布局
+- **表格支持**：转换表格内的文本
+- **输出**：Word 格式 (.docx)，保持原始格式
+
+### 文本文件 (.txt)
+- **完整内容转换**：处理整个文件内容
+- **编码支持**：UTF-8 输入和输出
+- **换行保持**：维护原始文本结构
+- **输出**：纯文本 (.txt)，UTF-8 编码
+
+## 转换模式
+
+### 基础转换
+| 模式 | 描述 | 示例 |
+|------|------|------|
+| `s2t` | 简体转繁体中文 | 简体 → 繁體 |
+| `t2s` | 繁体转简体中文 | 繁體 → 简体 |
+
+### 地区标准
+| 模式 | 描述 | 使用场景 |
+|------|------|----------|
+| `s2tw` | 简体转繁体（台湾） | 大陆 → 台湾 |
+| `tw2s` | 繁体（台湾）转简体 | 台湾 → 大陆 |
+| `s2hk` | 简体转繁体（香港） | 大陆 → 香港 |
+| `hk2s` | 繁体（香港）转简体 | 香港 → 大陆 |
+
+### 高级转换
+| 模式 | 描述 | 特性 |
+|------|------|------|
+| `s2twp` | 简体转繁体（台湾+短语） | 包含词汇转换 |
+| `tw2sp` | 繁体（台湾）转简体+短语 | 包含词汇转换 |
+| `t2tw` | 繁体转繁体（台湾） | 字符变体标准化 |
+| `t2hk` | 繁体转繁体（香港） | 字符变体标准化 |
+
+## 界面截图
+
+### 主界面
+应用程序具有清晰、专业的界面，工作流程逻辑清楚：
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           OpenCC 中文转换器                              │
+├─────────────────────────────┬───┬─────────────────────────────────────────┤
+│         左列区域            │ │ │            右列区域                     │
+│      （输入和控制）         │ │ │        （预览和输出）                   │
+│                             │ │ │                                         │
+│ • 文件选择                  │ │ │ • 实时预览                              │
+│ • 转换设置                  │ │ │ • 进度跟踪                              │
+│ • 列选择                    │ │ │ • 复制功能                              │
+│ • 操作按钮                  │ │ │                                         │
+└─────────────────────────────┴───┴─────────────────────────────────────────┘
+```
+
+### 主要功能演示
+- **两列布局**：从左到右的有序工作流程
+- **实时预览**：转换结果的即时反馈
+- **进度跟踪**：大文件操作的可视化进度条
+- **专业外观**：无控制台窗口的干净界面
 
 ## Installation
 
@@ -216,189 +408,188 @@ The application features a clean, professional interface with logical workflow:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                           OpenCC Chinese Converter                       │
+│                           OpenCC 中文转换器                              │
 ├─────────────────────────────┬───┬─────────────────────────────────────────┤
-│         LEFT COLUMN         │ │ │            RIGHT COLUMN                 │
-│      (Input & Controls)     │ │ │        (Preview & Output)               │
+│         左列区域            │ │ │            右列区域                     │
+│      （输入和控制）         │ │ │        （预览和输出）                   │
 │                             │ │ │                                         │
-│ • File Selection            │ │ │ • Real-time Preview                     │
-│ • Conversion Settings       │ │ │ • Progress Tracking                     │
-│ • Column Selection          │ │ │ • Copy Functionality                    │
-│ • Action Buttons            │ │ │                                         │
+│ • 文件选择                  │ │ │ • 实时预览                              │
+│ • 转换设置                  │ │ │ • 进度跟踪                              │
+│ • 列选择                    │ │ │ • 复制功能                              │
+│ • 操作按钮                  │ │ │                                         │
 └─────────────────────────────┴───┴─────────────────────────────────────────┘
 ```
 
-### Key Features Demonstration
-- **Two-column Layout**: Organized workflow from left to right
-- **Real-time Preview**: Immediate feedback on conversion results
-- **Progress Tracking**: Visual progress bar for large file operations
-- **Professional Appearance**: Clean interface without console windows
+### 主要功能演示
+- **两列布局**：从左到右的有序工作流程
+- **实时预览**：转换结果的即时反馈
+- **进度跟踪**：大文件操作的可视化进度条
+- **专业外观**：无控制台窗口的干净界面
 
-## Contributing
+## 贡献指南
 
-We welcome contributions to improve this project! Here's how you can help:
+欢迎贡献来改进这个项目！以下是您可以帮助的方式：
 
-### Reporting Issues
+### 报告问题
 
-1. **Check existing issues** before creating a new one
-2. **Use the issue template** and provide detailed information:
-   - Operating system and Python version
-   - Steps to reproduce the problem
-   - Expected vs actual behavior
-   - Error messages or screenshots
+1. **检查现有问题**，在创建新问题前先检查是否已存在
+2. **使用问题模板**并提供详细信息：
+   - 操作系统和 Python 版本
+   - 复现问题的步骤
+   - 期望与实际行为
+   - 错误消息或截图
 
-### Submitting Pull Requests
+### 提交拉取请求
 
-1. **Fork the repository** and create a feature branch
-2. **Make your changes** with clear, descriptive commits
-3. **Add tests** for new functionality
-4. **Update documentation** if needed
-5. **Submit a pull request** with a clear description
+1. **分支仓库**并创建功能分支
+2. **进行更改**，使用清楚、描述性的提交
+3. **为新功能添加测试**
+4. **必要时更新文档**
+5. **提交拉取请求**并提供清楚的描述
 
-### Development Setup
+### 开发环境设置
 
 ```bash
-# Clone your fork
+# 克隆您的分支
 git clone https://github.com/pencilq/opencc-chinese-converter-gui.git
 cd opencc-chinese-converter-gui
 
-# Create development environment
+# 创建开发环境
 python -m venv dev-env
-source dev-env/bin/activate  # On Windows: dev-env\Scripts\activate
+source dev-env/bin/activate  # Windows 上：dev-env\Scripts\activate
 
-# Install dependencies
+# 安装依赖
 pip install -r requirements.txt
-
-# Run tests (if available)
-python -m pytest
 ```
 
-### Code Style
+### 代码风格
 
-- Follow PEP 8 Python style guidelines
-- Use meaningful variable and function names
-- Add docstrings for new functions and classes
-- Keep functions focused and modular
+- 遵循 PEP 8 Python 风格指南
+- 使用有意义的变量和函数名
+- 为新函数和类添加文档字符串
+- 保持函数专注和模块化
 
-## Troubleshooting
+## 故障排除
 
-### Common Issues
+### 常见问题
 
-#### Installation Problems
+#### 安装问题
 
-**Issue**: `ImportError: No module named 'opencc'`
+**问题**：`ImportError: No module named 'opencc'`
 ```bash
-# Solution: Install the correct OpenCC package
+# 解决方案：安装正确的 OpenCC 包
 pip uninstall opencc
 pip install opencc-python-reimplemented
 ```
 
-**Issue**: Excel files not opening
+**问题**：Excel 文件无法打开
 ```bash
-# Solution: Install Excel support
+# 解决方案：安装 Excel 支持
 pip install openpyxl
 ```
 
-**Issue**: Word documents not processing
+**问题**：Word 文档无法处理
 ```bash
-# Solution: Install Word document support
+# 解决方案：安装 Word 文档支持
 pip install python-docx
 ```
 
-#### Runtime Issues
+#### 运行时问题
 
-**Issue**: Application crashes on startup
-- Verify Python version (3.7+ required)
-- Check all dependencies are installed
-- Try running from command line to see error messages
+**问题**：应用程序启动时崩溃
+- 验证 Python 版本（需要 3.7+）
+- 检查所有依赖项是否已安装
+- 尝试从命令行运行以查看错误消息
 
-**Issue**: Console window appears on Windows
-- This is expected behavior when running from command line
-- The console automatically hides when launched normally
+**问题**：Windows 上出现控制台窗口
+- 从命令行运行时这是预期行为
+- 正常启动时控制台会自动隐藏
 
-**Issue**: Conversion results are incorrect
-- Verify input text contains Chinese characters
-- Try different conversion modes
-- Check if source/target languages are set correctly
+**问题**：转换结果不正确
+- 验证输入文本包含中文字符
+- 尝试不同的转换模式
+- 检查源语言/目标语言设置是否正确
 
-#### File Processing Issues
+#### 文件处理问题
 
-**Issue**: "File encoding error"
-- Ensure text files are UTF-8 encoded
-- Try opening the file in a text editor and saving as UTF-8
+**问题**："文件编码错误"
+- 确保文本文件是 UTF-8 编码
+- 尝试在文本编辑器中打开文件并保存为 UTF-8
 
-**Issue**: "Permission denied" error
-- Check file/folder permissions
-- Ensure output directory is writable
-- Close the output file if it's open in another application
+**问题**："权限拒绝"错误
+- 检查文件/文件夹权限
+- 确保输出目录可写
+- 如果输出文件在其他应用程序中打开，请关闭它
 
-**Issue**: Excel column selection not working
-- Verify the Excel file has actual data
-- Check if columns contain Chinese text
-- Try selecting different columns
+**问题**：Excel 列选择不工作
+- 验证 Excel 文件包含实际数据
+- 检查列是否包含中文文本
+- 尝试选择不同的列
 
-### Getting Help
+### 获取帮助
 
-If you're still experiencing issues:
+如果您仍然遇到问题：
 
-1. **Check the [Issues](https://github.com/pencilq/opencc-chinese-converter-gui/issues) ** page
-2. **Create a new issue** with detailed information
-3. **Include error messages** and system information
+1. **检查 [Issues](https://github.com/pencilq/opencc-chinese-converter-gui/issues)** 页面
+2. **创建新问题**并提供详细信息
+3. **包含错误消息**和系统信息
 
-## Technical Documentation
+## 技术文档
 
-### Architecture Overview
+### 架构概览
 
-- **GUI Framework**: Tkinter (cross-platform, included with Python)
-- **Conversion Engine**: OpenCC (Open Chinese Convert)
-- **File Processing**: Pandas (Excel), python-docx (Word)
-- **Threading**: Background processing for large files
-- **Error Handling**: Comprehensive validation and user feedback
+- **GUI 框架**：Tkinter（跨平台，Python 内置）
+- **转换引擎**：OpenCC（开放中文转换）
+- **文件处理**：Pandas（Excel）、python-docx（Word）
+- **线程处理**：大文件的后台处理
+- **错误处理**：全面的验证和用户反馈
 
-### Project Structure
+### 项目结构
 
 ```
 opencc-chinese-converter-gui/
-├── opencc-py-gui.py          # Main application file
-├── requirements.txt          # Python dependencies
-├── README.md                 # Project documentation
-├── LAYOUT.md                 # GUI layout documentation
-├── sample_text.txt           # Sample files for testing
+├── opencc-py-gui.py          # 主应用程序文件
+├── requirements.txt          # Python 依赖
+├── README.md                 # 项目文档
+├── CHANGELOG.md              # 版本历史
+├── LICENSE                   # 许可证文件
+├── .gitignore                # Git 忽略文件
+├── sample_text.txt           # 测试样本文件
 ├── sample_data.xlsx          # 
 └── sample_document.docx      # 
 ```
 
-### Dependencies
+### 依赖项
 
-| Package | Version | Purpose |
+| 包名 | 版本 | 用途 |
 |---------|---------|----------|
-| opencc-python-reimplemented | ≥0.1.7 | Chinese text conversion engine |
-| pandas | ≥1.3.0 | Excel file processing and data manipulation |
-| openpyxl | ≥3.0.0 | Excel file read/write operations |
-| python-docx | ≥0.8.11 | Word document processing |
-| tkinter | Built-in | GUI framework (included with Python) |
+| opencc-python-reimplemented | ≥0.1.7 | 中文文本转换引擎 |
+| pandas | ≥1.3.0 | Excel 文件处理和数据操作 |
+| openpyxl | ≥3.0.0 | Excel 文件读写操作 |
+| python-docx | ≥0.8.11 | Word 文档处理 |
+| tkinter | 内置 | GUI 框架（Python 内置） |
 
-## License
+## 许可证
 
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+本项目使用 Apache License 2.0 许可证 - 详细信息请参阅 [LICENSE](LICENSE) 文件。
 
-### Third-party Licenses
+### 第三方许可证
 
-- **OpenCC**: Licensed under Apache License 2.0
-- **Pandas**: Licensed under BSD 3-Clause License
-- **openpyxl**: Licensed under MIT License
-- **python-docx**: Licensed under MIT License
+- **OpenCC**：使用 Apache License 2.0 许可证
+- **Pandas**：使用 BSD 3-Clause 许可证
+- **openpyxl**：使用 MIT 许可证
+- **python-docx**：使用 MIT 许可证
 
-## Acknowledgments
+## 致谢
 
-- **OpenCC Project**: BYVoid and contributors for the excellent Chinese conversion library
-- **Python Community**: For the amazing ecosystem of libraries
-- **Contributors**: Everyone who has helped improve this project
+- **OpenCC 项目**：感谢 BYVoid 和贡献者们提供的优秀中文转换库
+- **Python 社区**：感谢提供了令人惊叹的库生态系统
+- **贡献者**：感谢每一位帮助改进这个项目的人
 
-## Changelog
+## 更新日志
 
-See [CHANGELOG.md](CHANGELOG.md) for a detailed history of changes.
+详细的更改历史请参阅 [CHANGELOG.md](CHANGELOG.md)。
 
 ---
 
-**Made with ❤️ for the Chinese text processing community**
+**为中文文本处理社区精心打造**
