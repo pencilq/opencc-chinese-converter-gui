@@ -56,7 +56,7 @@ jobs:
         Compress-Archive -Path "OpenCC中文转换器-Windows" -DestinationPath "OpenCC中文转换器-Windows-x64.zip"
         
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows-executable
         path: |
@@ -102,7 +102,7 @@ jobs:
         tar -czf "OpenCC中文转换器-macOS-x64.tar.gz" "OpenCC中文转换器-macOS"
         
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: macos-executable
         path: |
@@ -119,13 +119,13 @@ jobs:
       uses: actions/checkout@v4
       
     - name: Download Windows artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: windows-executable
         path: ./windows-build/
         
     - name: Download macOS artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: macos-executable
         path: ./macos-build/
@@ -149,13 +149,10 @@ jobs:
         fi
         
     - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.get_version.outputs.VERSION }}
-        release_name: OpenCC 中文转换器 ${{ steps.get_version.outputs.VERSION }}
+        name: OpenCC 中文转换器 ${{ steps.get_version.outputs.VERSION }}
         body: |
           # OpenCC 中文转换器 ${{ steps.get_version.outputs.VERSION }}
           
@@ -194,33 +191,7 @@ jobs:
           ${{ steps.changelog.outputs.CHANGELOG }}
         draft: false
         prerelease: false
-        
-    - name: Upload Windows ZIP
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./windows-build/OpenCC中文转换器-Windows-x64.zip
-        asset_name: OpenCC中文转换器-Windows-x64.zip
-        asset_content_type: application/zip
-        
-    - name: Upload Windows EXE
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./windows-build/OpenCC中文转换器.exe
-        asset_name: OpenCC中文转换器.exe
-        asset_content_type: application/octet-stream
-        
-    - name: Upload macOS Package
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./macos-build/OpenCC中文转换器-macOS-x64.tar.gz
-        asset_name: OpenCC中文转换器-macOS-x64.tar.gz
-        asset_content_type: application/gzip
+        files: |
+          ./windows-build/OpenCC中文转换器.exe
+          ./windows-build/OpenCC中文转换器-Windows-x64.zip
+          ./macos-build/OpenCC中文转换器-macOS-x64.tar.gz
