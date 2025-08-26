@@ -168,6 +168,12 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
+# PyInstaller build artifacts
+# *.spec  # Keep spec files in git
+dist/
+build/
+*.egg-info/
+
 # Application specific
 test_console_hide.py
 *_converted.*

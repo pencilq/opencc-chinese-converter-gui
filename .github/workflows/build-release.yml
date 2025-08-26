@@ -1,0 +1,226 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # 当推送标签时触发（如 v1.0.0, v1.1.0）
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+        
+    - name: Build executable
+      run: |
+        # 使用 spec 文件构建（更好的控制）
+        pyinstaller --clean opencc-gui.spec
+        
+    - name: Create portable package
+      run: |
+        mkdir "OpenCC中文转换器-Windows"
+        copy "dist\OpenCC中文转换器.exe" "OpenCC中文转换器-Windows\"
+        copy "README.md" "OpenCC中文转换器-Windows\"
+        copy "LICENSE" "OpenCC中文转换器-Windows\"
+        copy "sample_text.txt" "OpenCC中文转换器-Windows\"
+        copy "sample_data.csv" "OpenCC中文转换器-Windows\"
+        echo "OpenCC 中文转换器 - 便携版" > "OpenCC中文转换器-Windows\说明.txt"
+        echo "" >> "OpenCC中文转换器-Windows\说明.txt"
+        echo "使用方法：" >> "OpenCC中文转换器-Windows\说明.txt"
+        echo "1. 双击 OpenCC中文转换器.exe 启动程序" >> "OpenCC中文转换器-Windows\说明.txt"
+        echo "2. 选择要转换的文件或直接输入文本" >> "OpenCC中文转换器-Windows\说明.txt"
+        echo "3. 配置转换设置" >> "OpenCC中文转换器-Windows\说明.txt"
+        echo "4. 点击转换按钮开始处理" >> "OpenCC中文转换器-Windows\说明.txt"
+        echo "" >> "OpenCC中文转换器-Windows\说明.txt"
+        echo "支持的文件格式：" >> "OpenCC中文转换器-Windows\说明.txt"
+        echo "- Excel文件 (.xlsx, .xls)" >> "OpenCC中文转换器-Windows\说明.txt"
+        echo "- Word文档 (.docx)" >> "OpenCC中文转换器-Windows\说明.txt"
+        echo "- 文本文件 (.txt)" >> "OpenCC中文转换器-Windows\说明.txt"
+        
+    - name: Compress package
+      run: |
+        Compress-Archive -Path "OpenCC中文转换器-Windows" -DestinationPath "OpenCC中文转换器-Windows-x64.zip"
+        
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: windows-executable
+        path: |
+          dist/OpenCC中文转换器.exe
+          OpenCC中文转换器-Windows-x64.zip
+
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+        
+    - name: Build executable
+      run: |
+        # 使用 spec 文件构建（更好的控制）
+        pyinstaller --clean opencc-gui.spec
+        
+    - name: Create DMG package
+      run: |
+        mkdir "OpenCC中文转换器-macOS"
+        cp "dist/OpenCC中文转换器" "OpenCC中文转换器-macOS/"
+        cp "README.md" "OpenCC中文转换器-macOS/"
+        cp "LICENSE" "OpenCC中文转换器-macOS/"
+        cp "sample_text.txt" "OpenCC中文转换器-macOS/"
+        cp "sample_data.csv" "OpenCC中文转换器-macOS/"
+        echo "OpenCC 中文转换器 - macOS版" > "OpenCC中文转换器-macOS/说明.txt"
+        echo "" >> "OpenCC中文转换器-macOS/说明.txt"
+        echo "使用方法：" >> "OpenCC中文转换器-macOS/说明.txt"
+        echo "1. 双击 OpenCC中文转换器 启动程序" >> "OpenCC中文转换器-macOS/说明.txt"
+        echo "2. 如果出现安全提示，请在系统偏好设置-安全性与隐私中允许运行" >> "OpenCC中文转换器-macOS/说明.txt"
+        tar -czf "OpenCC中文转换器-macOS-x64.tar.gz" "OpenCC中文转换器-macOS"
+        
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: macos-executable
+        path: |
+          dist/OpenCC中文转换器
+          OpenCC中文转换器-macOS-x64.tar.gz
+
+  create-release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download Windows artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: windows-executable
+        path: ./windows-build/
+        
+    - name: Download macOS artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: macos-executable
+        path: ./macos-build/
+        
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+    - name: Read changelog
+      id: changelog
+      run: |
+        if [ -f CHANGELOG.md ]; then
+          # 提取当前版本的变更日志
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          awk "/## \[${VERSION#v}\]/{flag=1; next} /## \[/{flag=0} flag" CHANGELOG.md > current_changelog.txt || echo "## 更新内容" > current_changelog.txt
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          cat current_changelog.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        else
+          echo "CHANGELOG=## 更新内容" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.get_version.outputs.VERSION }}
+        release_name: OpenCC 中文转换器 ${{ steps.get_version.outputs.VERSION }}
+        body: |
+          # OpenCC 中文转换器 ${{ steps.get_version.outputs.VERSION }}
+          
+          ## 📥 下载说明
+          
+          ### Windows 用户
+          - **推荐**: 下载 `OpenCC中文转换器-Windows-x64.zip` (完整安装包)
+          - **极简版**: 下载 `OpenCC中文转换器.exe` (仅可执行文件)
+          
+          ### macOS 用户  
+          - 下载 `OpenCC中文转换器-macOS-x64.tar.gz`
+          - 首次运行可能需要在系统偏好设置中允许运行未签名应用
+          
+          ## ✨ 主要功能
+          
+          - 🔄 支持简体/繁体中文互转
+          - 📊 支持 Excel、Word、文本文件批量转换
+          - 🎯 Excel 多列选择转换
+          - 👀 实时预览转换结果
+          - 🚀 快速直接文本转换
+          - 🎨 清晰的两栏式界面设计
+          
+          ## 📋 系统要求
+          
+          - **Windows**: Windows 10/11 (64位)
+          - **macOS**: macOS 10.14+ (64位)
+          - **内存**: 建议 4GB 以上
+          - **磁盘空间**: 100MB 可用空间
+          
+          ## 🐛 问题反馈
+          
+          如遇到问题，请在 [Issues](https://github.com/pencilq/opencc-chinese-converter-gui/issues) 中反馈。
+          
+          ## 📝 更新内容
+          
+          ${{ steps.changelog.outputs.CHANGELOG }}
+        draft: false
+        prerelease: false
+        
+    - name: Upload Windows ZIP
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./windows-build/OpenCC中文转换器-Windows-x64.zip
+        asset_name: OpenCC中文转换器-Windows-x64.zip
+        asset_content_type: application/zip
+        
+    - name: Upload Windows EXE
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./windows-build/OpenCC中文转换器.exe
+        asset_name: OpenCC中文转换器.exe
+        asset_content_type: application/octet-stream
+        
+    - name: Upload macOS Package
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./macos-build/OpenCC中文转换器-macOS-x64.tar.gz
+        asset_name: OpenCC中文转换器-macOS-x64.tar.gz
+        asset_content_type: application/gzip

@@ -1,0 +1,12 @@
+# This is a placeholder for icon.ico
+# For a real icon file, you should create or download a proper .ico file
+# You can use online tools like:
+# - https://www.icoconverter.com/
+# - https://convertio.co/png-ico/
+# 
+# Or create one using tools like GIMP, Paint.NET, or Adobe Illustrator
+# 
+# The icon should be 256x256 pixels or include multiple sizes (16x16, 32x32, 48x48, 256x256)
+# and represent the application - perhaps a combination of Chinese characters and conversion arrows
+#
+# For now, PyInstaller will use a default icon if this file is missing.
