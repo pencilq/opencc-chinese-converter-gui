@@ -17,7 +17,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
+        python-version: '3.11'
         
     - name: Install dependencies
       run: |
@@ -25,10 +25,43 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
         
+    - name: Test dependencies
+      run: |
+        echo "Testing Python and dependencies..."
+        python --version
+        pip list | findstr "opencc pandas openpyxl docx pyinstaller"
+        echo "Testing imports..."
+        python -c "import opencc; print('OpenCC import: OK')"
+        python -c "import pandas; print('Pandas import: OK')"
+        python -c "import openpyxl; print('OpenPyXL import: OK')"
+        python -c "import docx; print('Python-docx import: OK')"
+        echo "All dependencies verified successfully"
+        
     - name: Build executable
       run: |
-        # 使用 spec 文件构建（更好的控制）
-        pyinstaller --clean opencc-gui.spec
+        echo "Starting PyInstaller build..."
+        # 使用简化的 PyInstaller 命令进行调试
+        pyinstaller --onefile --noconsole --name "OpenCC中文转换器" --add-data "sample_text.txt;." --add-data "sample_data.csv;." --add-data "README.md;." --add-data "LICENSE;." opencc-py-gui.py
+        echo "Build completed, checking output..."
+        dir dist
+        if exist "dist\OpenCC中文转换器.exe" (
+          echo "EXE file created successfully"
+          dir /q "dist\OpenCC中文转换器.exe"
+        ) else (
+          echo "Simple build failed, trying with spec file..."
+          pyinstaller --clean opencc-gui.spec
+          dir dist
+          if exist "dist\OpenCC中文转换器.exe" (
+            echo "Spec file build succeeded"
+          ) else (
+            echo "ERROR: Both build methods failed!"
+            echo "Contents of dist directory:"
+            dir dist
+            echo "Contents of build directory:"
+            dir build
+            exit 1
+          )
+        )
         
     - name: Create portable package
       run: |
@@ -73,7 +106,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: '3.9'
+        python-version: '3.11'
         
     - name: Install dependencies
       run: |
@@ -81,10 +114,43 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
         
+    - name: Test dependencies
+      run: |
+        echo "Testing Python and dependencies..."
+        python --version
+        pip list | grep -E "opencc|pandas|openpyxl|docx|pyinstaller"
+        echo "Testing imports..."
+        python -c "import opencc; print('OpenCC import: OK')"
+        python -c "import pandas; print('Pandas import: OK')"
+        python -c "import openpyxl; print('OpenPyXL import: OK')"
+        python -c "import docx; print('Python-docx import: OK')"
+        echo "All dependencies verified successfully"
+        
     - name: Build executable
       run: |
-        # 使用 spec 文件构建（更好的控制）
-        pyinstaller --clean opencc-gui.spec
+        echo "Starting PyInstaller build..."
+        # 使用简化的 PyInstaller 命令进行调试
+        pyinstaller --onefile --noconsole --name "OpenCC中文转换器" --add-data "sample_text.txt:." --add-data "sample_data.csv:." --add-data "README.md:." --add-data "LICENSE:." opencc-py-gui.py
+        echo "Build completed, checking output..."
+        ls -la dist/
+        if [ -f "dist/OpenCC中文转换器" ]; then
+          echo "Executable created successfully"
+          ls -lh "dist/OpenCC中文转换器"
+        else
+          echo "Simple build failed, trying with spec file..."
+          pyinstaller --clean opencc-gui.spec
+          ls -la dist/
+          if [ -f "dist/OpenCC中文转换器" ]; then
+            echo "Spec file build succeeded"
+          else
+            echo "ERROR: Both build methods failed!"
+            echo "Contents of dist directory:"
+            ls -la dist/
+            echo "Contents of build directory:"
+            ls -la build/
+            exit 1
+          fi
+        fi
         
     - name: Create DMG package
       run: |
