@@ -182,3 +182,86 @@ git push origin v1.0.2
 4. 用户可直接下载使用
 
 这样用户就无需安装 Python 环境，可以直接运行您的应用程序！
+
+# OpenCC-Py-GUI 构建指南
+
+## 简介
+
+本指南介绍了如何构建 OpenCC-Py-GUI 应用程序。我们提供了一个简化的本地构建方法，避免使用复杂的 GitHub Actions 工作流。
+
+## 构建要求
+
+### 系统要求
+- Python 3.7 或更高版本
+- Windows 7/8/10/11, macOS 10.12+, 或 Linux
+
+### Python 依赖
+- `opencc-python-reimplemented>=0.1.7`
+- `pandas>=1.3.0`
+- `openpyxl>=3.0.0`
+- `python-docx>=0.8.11`
+- `PyInstaller>=4.0` (仅用于构建可执行文件)
+
+## 本地构建步骤
+
+### 1. 安装依赖
+
+```bash
+# 克隆仓库
+git clone https://github.com/pencilq/opencc-chinese-converter-gui.git
+cd opencc-chinese-converter-gui
+
+# 创建虚拟环境（推荐）
+python -m venv opencc-env
+# Windows:
+opencc-env\Scripts\activate
+# macOS/Linux:
+source opencc-env/bin/activate
+
+# 安装依赖
+pip install -r requirements.txt
+
+# 安装构建工具
+pip install pyinstaller
+```
+
+### 2. 运行应用程序
+
+```bash
+python opencc-py-gui.py
+```
+
+### 3. 构建可执行文件
+
+使用我们提供的简单构建脚本：
+
+```bash
+python simple_build.py
+```
+
+构建完成后，可执行文件将位于 `dist/OpenCC-Chinese-Converter.exe` (Windows) 或 `dist/OpenCC-GUI` (macOS/Linux)。
+
+### 4. 手动使用 PyInstaller 构建
+
+如果您希望手动构建，可以使用以下命令：
+
+```bash
+# Windows 构建（隐藏控制台窗口）
+pyinstaller --onefile --windowed --name "OpenCC-GUI" opencc-py-gui.py
+
+# macOS/Linux 构建
+pyinstaller --onefile --name "OpenCC-GUI" opencc-py-gui.py
+```
+
+构建的可执行文件将位于 `dist/` 目录中。
+
+## 故障排除
+
+查看 [BUILD_TROUBLESHOOTING.md](BUILD_TROUBLESHOOTING.md) 获取常见问题的解决方案。
+
+## 发布新版本
+
+1. 更新 [CHANGELOG.md](CHANGELOG.md) 中的版本信息
+2. 更新 [version_info.txt](version_info.txt) 中的版本号
+3. 使用本地构建脚本创建可执行文件
+4. 手动创建 GitHub Release 并上传构建的文件
