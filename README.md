@@ -16,10 +16,6 @@
 - 📦 批量处理：支持大文件批量处理
 - 🌐 跨平台：Windows、macOS 和 Linux 支持
 
-## 界面预览
-
-![OpenCC GUI 界面](screenshots/gui_preview.png)
-
 ## 安装
 
 ### 方法 1：使用预构建的可执行文件（推荐）
