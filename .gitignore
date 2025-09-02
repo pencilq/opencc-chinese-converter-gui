@@ -215,3 +215,7 @@ npsCharts.xlsx
 
 # Documentation build
 CONSOLE_HIDE_SUMMARY.md
+
+# BFG Repo-Cleaner
+.git.bfg-report/
+bfg-*.jar
