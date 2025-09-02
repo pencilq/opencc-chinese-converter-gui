@@ -169,10 +169,24 @@ ehthumbs.db
 Desktop.ini
 
 # PyInstaller build artifacts
-# *.spec  # Keep spec files in git
 dist/
 build/
-*.egg-info/
+*.spec
+*.toc
+*.pkg
+*.pyz
+*.manifest
+warn-*.txt
+xref-*.html
+base_library.zip
+
+# Executable files
+*.exe
+
+# Temporary build directories
+release/
+temp_build/
+temp_spec/
 
 # Application specific
 test_console_hide.py
@@ -201,23 +215,3 @@ npsCharts.xlsx
 
 # Documentation build
 CONSOLE_HIDE_SUMMARY.md
-
-# Add these additional ignore patterns for build artifacts
-# PyInstaller output directories
-release/
-temp_build/
-dist/
-build/
-
-# PyInstaller specific files
-*.spec
-*.toc
-*.pkg
-*.pyz
-*.manifest
-warn-*.txt
-xref-*.html
-base_library.zip
-
-# Executable files
-*.exe
