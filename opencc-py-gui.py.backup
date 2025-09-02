@@ -13,65 +13,41 @@ import os
 import threading
 from pathlib import Path
 import ctypes
-import logging
-
-# Import UI strings
-import ui_strings as ui
-
-# Import logger
-from app_logger import get_logger
-
-# Initialize logger
-logger = get_logger()
-
-# Flag to track if required modules are available
-modules_available = True
-
 try:
     from opencc import OpenCC
-except ImportError as e:
-    logger.error(f"OpenCC import error: {e}")
-    modules_available = False
+except ImportError:
+    messagebox.showerror("Import Error", "Please install opencc-python-reimplemented:\npip install opencc-python-reimplemented")
+    exit(1)
 
 try:
     from openpyxl import load_workbook
-except ImportError as e:
-    logger.error(f"openpyxl import error: {e}")
-    modules_available = False
+except ImportError:
+    messagebox.showerror("Import Error", "Please install openpyxl:\npip install openpyxl")
+    exit(1)
 
 try:
     from docx import Document
-except ImportError as e:
-    logger.error(f"python-docx import error: {e}")
-    modules_available = False
+except ImportError:
+    messagebox.showerror("Import Error", "Please install python-docx:\npip install python-docx")
+    exit(1)
 
 
 class OpenCCGUI:
     def __init__(self, root):
-        # Check if required modules are available
-        if not modules_available:
-            messagebox.showerror(ui.ERROR_IMPORT_OPENCC, ui.ERROR_IMPORT_OPENCC_MSG)
-            root.destroy()
-            return
-            
         self.root = root
-        self.root.title(ui.APP_TITLE)
+        self.root.title("OpenCC 中文转换器")
         self.root.geometry("1200x700")
         
         # Variables
         self.input_file_path = tk.StringVar()
         self.output_file_path = tk.StringVar()
         # New multi-layer conversion settings
-        self.source_type = tk.StringVar(value=ui.TYPE_SIMPLIFIED)
-        self.target_type = tk.StringVar(value=ui.TYPE_TRADITIONAL)
-        self.variant_standard = tk.StringVar(value=ui.VARIANT_TW)
+        self.source_type = tk.StringVar(value="简体")
+        self.target_type = tk.StringVar(value="繁体")
+        self.variant_standard = tk.StringVar(value="台湾标准")
         self.convert_phrases = tk.BooleanVar(value=True)
         self.file_type = tk.StringVar()
         self.direct_text_input = tk.StringVar()
-        
-        # Configuration variables for preview limits
-        self.preview_text_limit = tk.IntVar(value=1000)  # Default: 1000 characters
-        self.preview_row_limit = tk.IntVar(value=10)      # Default: 10 rows
         
         # Data storage
         self.file_data = None
@@ -85,13 +61,6 @@ class OpenCCGUI:
         self.last_conversion_settings = ""
         self.last_input_file = ""
         self.last_direct_text = ""
-        
-        # Progress tracking for direct text conversion
-        self.converting_direct_text = False
-        
-        # Undo functionality
-        self.undo_stack = []
-        self.redo_stack = []
         
         self.setup_ui()
         self.update_converter()
@@ -123,10 +92,6 @@ class OpenCCGUI:
             self.root.option_add("*TCheckbutton*Font", fallback_font)
             self.root.option_add("*TCombobox*Font", fallback_font)
         
-        # Enable keyboard navigation
-        self.root.bind('<Control-z>', self.undo_action)
-        self.root.bind('<Control-y>', self.redo_action)
-        
         # Main frame
         main_frame = ttk.Frame(self.root, padding="10")
         main_frame.grid(row=0, column=0, sticky="nsew")
@@ -154,29 +119,29 @@ class OpenCCGUI:
         right_frame.rowconfigure(1, weight=1)  # Preview area should expand
         
         # Title in left frame
-        title_label = ttk.Label(left_frame, text=ui.APP_TITLE, 
+        title_label = ttk.Label(left_frame, text="OpenCC 中文转换器", 
                                font=("Cascadia Code", 14, "bold"))
         title_label.grid(row=0, column=0, pady=(0, 20), sticky="w")
         
         # File selection section in left frame
-        file_frame = ttk.LabelFrame(left_frame, text=ui.FILE_SELECTION_TITLE, padding="10")
+        file_frame = ttk.LabelFrame(left_frame, text="文件选择", padding="10")
         file_frame.grid(row=1, column=0, sticky="ew", pady=(0, 10))
         file_frame.columnconfigure(1, weight=1)
         
         # Input file
-        ttk.Label(file_frame, text=ui.INPUT_FILE_LABEL).grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
+        ttk.Label(file_frame, text="输入文件:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
         ttk.Entry(file_frame, textvariable=self.input_file_path, state="readonly").grid(
             row=0, column=1, sticky="ew", padx=(0, 5))
-        ttk.Button(file_frame, text=ui.BROWSE_BUTTON, command=self.browse_input_file).grid(row=0, column=2)
+        ttk.Button(file_frame, text="浏览", command=self.browse_input_file).grid(row=0, column=2)
         
         # Output file
-        ttk.Label(file_frame, text=ui.OUTPUT_FILE_LABEL).grid(row=1, column=0, sticky=tk.W, padx=(0, 5), pady=(5, 0))
+        ttk.Label(file_frame, text="输出文件:").grid(row=1, column=0, sticky=tk.W, padx=(0, 5), pady=(5, 0))
         ttk.Entry(file_frame, textvariable=self.output_file_path).grid(
             row=1, column=1, sticky="ew", padx=(0, 5), pady=(5, 0))
-        ttk.Button(file_frame, text=ui.BROWSE_BUTTON, command=self.browse_output_file).grid(row=1, column=2, pady=(5, 0))
+        ttk.Button(file_frame, text="浏览", command=self.browse_output_file).grid(row=1, column=2, pady=(5, 0))
         
         # Direct text input section in left frame
-        text_input_frame = ttk.LabelFrame(left_frame, text=ui.DIRECT_TEXT_TITLE, padding="10")
+        text_input_frame = ttk.LabelFrame(left_frame, text="直接文本输入（可替代文件输入）", padding="10")
         text_input_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
         text_input_frame.columnconfigure(0, weight=1)
         
@@ -186,38 +151,38 @@ class OpenCCGUI:
         self.direct_text_entry.bind('<KeyRelease>', self.on_direct_text_change_event)
         
         # Conversion mode section with multi-layer settings in left frame
-        mode_frame = ttk.LabelFrame(left_frame, text=ui.CONVERSION_SETTINGS_TITLE, padding="10")
+        mode_frame = ttk.LabelFrame(left_frame, text="转换设置", padding="10")
         mode_frame.grid(row=3, column=0, sticky="ew", pady=(0, 10))
         mode_frame.columnconfigure(1, weight=1)
         mode_frame.columnconfigure(3, weight=1)
         
         # First row: Source and Target
-        ttk.Label(mode_frame, text=ui.SOURCE_LABEL).grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
+        ttk.Label(mode_frame, text="原文:").grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
         source_combo = ttk.Combobox(mode_frame, textvariable=self.source_type, 
-                                   values=[ui.TYPE_SIMPLIFIED, ui.TYPE_TRADITIONAL], state="readonly", width=10)
+                                   values=["简体", "繁体"], state="readonly", width=10)
         source_combo.grid(row=0, column=1, sticky=tk.W, padx=(0, 20))
         source_combo.bind('<<ComboboxSelected>>', self.on_conversion_settings_change)
         
-        ttk.Label(mode_frame, text=ui.TARGET_LABEL).grid(row=0, column=2, sticky=tk.W, padx=(0, 5))
+        ttk.Label(mode_frame, text="目标:").grid(row=0, column=2, sticky=tk.W, padx=(0, 5))
         target_combo = ttk.Combobox(mode_frame, textvariable=self.target_type, 
-                                   values=[ui.TYPE_SIMPLIFIED, ui.TYPE_TRADITIONAL], state="readonly", width=10)
+                                   values=["简体", "繁体"], state="readonly", width=10)
         target_combo.grid(row=0, column=3, sticky=tk.W)
         target_combo.bind('<<ComboboxSelected>>', self.on_conversion_settings_change)
         
         # Second row: Variant and Phrases
-        ttk.Label(mode_frame, text=ui.VARIANT_LABEL).grid(row=1, column=0, sticky=tk.W, padx=(0, 5), pady=(10, 0))
+        ttk.Label(mode_frame, text="字形:").grid(row=1, column=0, sticky=tk.W, padx=(0, 5), pady=(10, 0))
         variant_combo = ttk.Combobox(mode_frame, textvariable=self.variant_standard, 
-                                    values=[ui.VARIANT_OPENCC, ui.VARIANT_HK, ui.VARIANT_TW], 
+                                    values=["OpenCC 标准", "香港标准", "台湾标准"], 
                                     state="readonly", width=15)
         variant_combo.grid(row=1, column=1, sticky=tk.W, padx=(0, 20), pady=(10, 0))
         variant_combo.bind('<<ComboboxSelected>>', self.on_conversion_settings_change)
         
-        phrase_check = ttk.Checkbutton(mode_frame, text=ui.PHRASES_LABEL, variable=self.convert_phrases,
+        phrase_check = ttk.Checkbutton(mode_frame, text="当地词汇", variable=self.convert_phrases,
                                       command=self.on_conversion_settings_change)
         phrase_check.grid(row=1, column=2, columnspan=2, sticky=tk.W, pady=(10, 0))
         
         # Column selection section (for Excel files) - Multi-column support in left frame
-        self.column_frame = ttk.LabelFrame(left_frame, text=ui.COLUMN_SELECTION_TITLE, padding="10")
+        self.column_frame = ttk.LabelFrame(left_frame, text="列选择（Excel文件）", padding="10")
         self.column_frame.grid(row=4, column=0, sticky="ew", pady=(0, 10))
         self.column_frame.columnconfigure(0, weight=1)
         
@@ -225,23 +190,11 @@ class OpenCCGUI:
         control_frame = ttk.Frame(self.column_frame)
         control_frame.grid(row=0, column=0, sticky="ew", pady=(0, 5))
         
-        ttk.Button(control_frame, text=ui.SELECT_ALL_BUTTON, command=self.select_all_columns).pack(side=tk.LEFT, padx=(0, 5))
-        ttk.Button(control_frame, text=ui.DESELECT_ALL_BUTTON, command=self.deselect_all_columns).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(control_frame, text="全选", command=self.select_all_columns).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(control_frame, text="取消全选", command=self.deselect_all_columns).pack(side=tk.LEFT, padx=(0, 10))
         
-        self.selected_count_label = ttk.Label(control_frame, text=ui.SELECTED_COLUMNS_LABEL.format(0))
+        self.selected_count_label = ttk.Label(control_frame, text="已选择: 0 列")
         self.selected_count_label.pack(side=tk.LEFT)
-        
-        # Preview limits configuration
-        preview_config_frame = ttk.Frame(left_frame)
-        preview_config_frame.grid(row=6, column=0, sticky="ew", pady=(10, 0))
-        preview_config_frame.columnconfigure(1, weight=1)
-        preview_config_frame.columnconfigure(3, weight=1)
-        
-        ttk.Label(preview_config_frame, text=ui.PREVIEW_TEXT_LIMIT_LABEL).grid(row=0, column=0, sticky=tk.W, padx=(0, 5))
-        ttk.Entry(preview_config_frame, textvariable=self.preview_text_limit, width=10).grid(row=0, column=1, sticky=tk.W, padx=(0, 20))
-        
-        ttk.Label(preview_config_frame, text=ui.PREVIEW_ROW_LIMIT_LABEL).grid(row=0, column=2, sticky=tk.W, padx=(0, 5))
-        ttk.Entry(preview_config_frame, textvariable=self.preview_row_limit, width=10).grid(row=0, column=3, sticky=tk.W)
         
         # Scrollable checkboxes area
         checkbox_container = ttk.Frame(self.column_frame)
@@ -271,14 +224,14 @@ class OpenCCGUI:
         button_frame = ttk.Frame(left_frame)
         button_frame.grid(row=5, column=0, pady=(10, 0), sticky="ew")
         
-        ttk.Button(button_frame, text=ui.CONVERT_BUTTON, command=self.convert_file).grid(
+        ttk.Button(button_frame, text="转换文件", command=self.convert_file).grid(
             row=0, column=0, padx=(0, 10), sticky="w")
-        ttk.Button(button_frame, text=ui.CLEAR_BUTTON, command=self.clear_all).grid(row=0, column=1, sticky="w")
+        ttk.Button(button_frame, text="清空", command=self.clear_all).grid(row=0, column=1, sticky="w")
         
         # === RIGHT COLUMN: Preview and Progress ===
         
         # Preview section title in right frame
-        preview_title = ttk.Label(right_frame, text=ui.PREVIEW_TITLE, 
+        preview_title = ttk.Label(right_frame, text="预览与复制区域", 
                                  font=("Cascadia Code", 12, "bold"))
         preview_title.grid(row=0, column=0, pady=(0, 10), sticky="w")
         
@@ -300,14 +253,14 @@ class OpenCCGUI:
         # Copy button for direct text conversion in right frame
         copy_button_frame = ttk.Frame(preview_frame)
         copy_button_frame.grid(row=1, column=0, sticky="ew", pady=(5, 0))
-        ttk.Button(copy_button_frame, text=ui.COPY_BUTTON, command=self.copy_converted_text).pack(side=tk.LEFT)
+        ttk.Button(copy_button_frame, text="复制", command=self.copy_converted_text).pack(side=tk.LEFT)
         
         # Progress section in right frame
         progress_frame = ttk.Frame(right_frame)
         progress_frame.grid(row=2, column=0, sticky="ew", pady=(0, 10))
         progress_frame.columnconfigure(0, weight=1)
         
-        self.progress_var = tk.StringVar(value=ui.PROGRESS_READY)
+        self.progress_var = tk.StringVar(value="就绪")
         self.progress_label = ttk.Label(progress_frame, textvariable=self.progress_var)
         self.progress_label.grid(row=0, column=0, sticky=tk.W)
         
@@ -322,29 +275,29 @@ class OpenCCGUI:
         phrases = self.convert_phrases.get()
         
         # Basic conversion mapping
-        if source == ui.TYPE_SIMPLIFIED and target == ui.TYPE_TRADITIONAL:
-            if variant == ui.VARIANT_TW:
-                return ui.CONVERSION_MODE_S2TWP if phrases else ui.CONVERSION_MODE_S2TW
-            elif variant == ui.VARIANT_HK:
-                return ui.CONVERSION_MODE_S2HK
-            else:  # OpenCC standard
-                return ui.CONVERSION_MODE_S2T
-        elif source == ui.TYPE_TRADITIONAL and target == ui.TYPE_SIMPLIFIED:
-            if variant == ui.VARIANT_TW:
-                return ui.CONVERSION_MODE_TW2SP if phrases else ui.CONVERSION_MODE_TW2S
-            elif variant == ui.VARIANT_HK:
-                return ui.CONVERSION_MODE_HK2S
-            else:  # OpenCC standard
-                return ui.CONVERSION_MODE_T2S
-        elif source == ui.TYPE_TRADITIONAL and target == ui.TYPE_TRADITIONAL:
-            if variant == ui.VARIANT_TW:
-                return ui.CONVERSION_MODE_T2TW
-            elif variant == ui.VARIANT_HK:
-                return ui.CONVERSION_MODE_T2HK
+        if source == "简体" and target == "繁体":
+            if variant == "台湾标准":
+                return "s2twp" if phrases else "s2tw"
+            elif variant == "香港标准":
+                return "s2hk"
+            else:  # OpenCC 标准
+                return "s2t"
+        elif source == "繁体" and target == "简体":
+            if variant == "台湾标准":
+                return "tw2sp" if phrases else "tw2s"
+            elif variant == "香港标准":
+                return "hk2s"
+            else:  # OpenCC 标准
+                return "t2s"
+        elif source == "繁体" and target == "繁体":
+            if variant == "台湾标准":
+                return "t2tw"
+            elif variant == "香港标准":
+                return "t2hk"
             else:
-                return ui.CONVERSION_MODE_T2S  # Fallback
+                return "t2s"  # Fallback
         else:
-            # Simplified to Simplified, return None
+            # 简体到简体，直接返回原文
             return None
     
     def get_conversion_mode_for_filename(self):
@@ -355,31 +308,31 @@ class OpenCCGUI:
         phrases = self.convert_phrases.get()
         
         # Generate descriptive filename suffix
-        if source == target == ui.TYPE_SIMPLIFIED:
-            return ui.CONVERSION_MODE_SIMPLIFIED
-        elif source == ui.TYPE_SIMPLIFIED and target == ui.TYPE_TRADITIONAL:
-            if variant == ui.VARIANT_TW:
-                return ui.CONVERSION_MODE_S2TWP if phrases else ui.CONVERSION_MODE_S2TW
-            elif variant == ui.VARIANT_HK:
-                return ui.CONVERSION_MODE_S2HK
+        if source == target == "简体":
+            return "简体"
+        elif source == "简体" and target == "繁体":
+            if variant == "台湾标准":
+                return "s2twp" if phrases else "s2tw"
+            elif variant == "香港标准":
+                return "s2hk"
             else:
-                return ui.CONVERSION_MODE_S2T
-        elif source == ui.TYPE_TRADITIONAL and target == ui.TYPE_SIMPLIFIED:
-            if variant == ui.VARIANT_TW:
-                return ui.CONVERSION_MODE_TW2SP if phrases else ui.CONVERSION_MODE_TW2S
-            elif variant == ui.VARIANT_HK:
-                return ui.CONVERSION_MODE_HK2S
+                return "s2t"
+        elif source == "繁体" and target == "简体":
+            if variant == "台湾标准":
+                return "tw2sp" if phrases else "tw2s"
+            elif variant == "香港标准":
+                return "hk2s"
             else:
-                return ui.CONVERSION_MODE_T2S
-        elif source == ui.TYPE_TRADITIONAL and target == ui.TYPE_TRADITIONAL:
-            if variant == ui.VARIANT_TW:
-                return ui.CONVERSION_MODE_T2TW
-            elif variant == ui.VARIANT_HK:
-                return ui.CONVERSION_MODE_T2HK
+                return "t2s"
+        elif source == "繁体" and target == "繁体":
+            if variant == "台湾标准":
+                return "t2tw"
+            elif variant == "香港标准":
+                return "t2hk"
             else:
-                return ui.CONVERSION_MODE_T2T
+                return "t2t"
         else:
-            return ui.CONVERSION_MODE_CONVERT
+            return "convert"
     
     def update_converter(self):
         """Update the OpenCC converter based on current settings"""
@@ -392,8 +345,7 @@ class OpenCCGUI:
                 self.converter = None
                 self.progress_var.set("无需转换（相同格式）")
         except Exception as e:
-            messagebox.showerror(ui.ERROR_CONVERTER_INIT, ui.ERROR_CONVERTER_INIT_MSG.format(str(e)))
-            logger.error(f"Converter initialization error: {e}")
+            messagebox.showerror("转换器错误", f"初始化转换器失败: {str(e)}")
     
     def on_conversion_settings_change(self, *args):
         """Handle conversion settings change"""
@@ -450,12 +402,11 @@ class OpenCCGUI:
                 self.root.clipboard_clear()
                 self.root.clipboard_append(converted_text)
                 self.root.update()  # Ensure clipboard is updated
-                messagebox.showinfo(ui.SUCCESS_COPY, ui.SUCCESS_COPY_MSG)
+                messagebox.showinfo("成功", "转换结果已复制到剪贴板！")
             else:
-                messagebox.showwarning(ui.WARNING_NO_COPY, ui.WARNING_NO_COPY_MSG)
+                messagebox.showwarning("警告", "没有转换结果可复制。")
         except Exception as e:
-            messagebox.showerror(ui.ERROR_COPY, ui.ERROR_COPY_MSG.format(str(e)))
-            logger.error(f"Copy text error: {e}")
+            messagebox.showerror("错误", f"复制文本失败: {str(e)}")
     
     def browse_input_file(self):
         """Browse for input file"""
@@ -471,11 +422,6 @@ class OpenCCGUI:
         )
         
         if file_path:
-            # Validate file type
-            if not self.validate_file_type(file_path):
-                messagebox.showerror("错误", "不支持的文件类型。")
-                return
-                
             self.input_file_path.set(file_path)
             self.detect_file_type(file_path)
             self.load_file_data(file_path)
@@ -491,7 +437,7 @@ class OpenCCGUI:
         """Browse for output file"""
         input_path = self.input_file_path.get()
         if not input_path:
-            messagebox.showwarning(ui.WARNING_NO_INPUT, ui.WARNING_NO_INPUT_MSG)
+            messagebox.showwarning("警告", "请先选择输入文件。")
             return
         
         # Determine file type for save dialog
@@ -515,18 +461,6 @@ class OpenCCGUI:
         if file_path:
             self.output_file_path.set(file_path)
     
-    def validate_file_type(self, file_path):
-        """Validate that the file is of a supported type"""
-        try:
-            ext = Path(file_path).suffix.lower()
-            if ext in ['.xlsx', '.xls', '.docx', '.txt']:
-                return True
-            else:
-                return False
-        except Exception as e:
-            logger.error(f"File type validation error: {e}")
-            return False
-    
     def detect_file_type(self, file_path):
         """Detect file type based on extension"""
         ext = Path(file_path).suffix.lower()
@@ -542,15 +476,7 @@ class OpenCCGUI:
     def load_file_data(self, file_path):
         """Load file data and update column selection if needed"""
         try:
-            self.progress_var.set(ui.PROGRESS_LOADING_FILE)
-            
-            # Check file size to warn about large files
-            file_size = os.path.getsize(file_path)
-            if file_size > 100 * 1024 * 1024:  # 100MB
-                response = messagebox.askyesno("警告", f"文件大小为 {file_size / (1024*1024):.2f} MB，可能需要较长时间处理。是否继续？")
-                if not response:
-                    self.progress_var.set(ui.PROGRESS_READY)
-                    return
+            self.progress_var.set("Loading file...")
             
             if self.file_type.get() == 'excel':
                 # Load Excel file
@@ -568,55 +494,26 @@ class OpenCCGUI:
                     self.file_data = f.read()
                 self.clear_column_selection()
             
-            self.progress_var.set(ui.PROGRESS_FILE_LOADED)
+            self.progress_var.set("File loaded successfully")
         except Exception as e:
-            messagebox.showerror(ui.ERROR_FILE_LOAD, ui.ERROR_FILE_LOAD_MSG.format(str(e)))
-            self.progress_var.set(ui.PROGRESS_ERROR_LOADING_FILE)
-            logger.error(f"File load error: {e}")
+            messagebox.showerror("File Error", f"Failed to load file: {str(e)}")
+            self.progress_var.set("Error loading file")
     
     def update_column_selection(self):
         """Update column selection checkboxes for Excel files"""
-        # Check if file_data is a DataFrame (Excel file)
-        if (self.file_data is not None and
-            isinstance(self.file_data, pd.DataFrame) and
-            hasattr(self.file_data, 'columns') and
-            hasattr(self.file_data, 'empty') and
+        # Clear existing checkboxes
+        for widget in self.column_scrollable_frame.winfo_children():
+            widget.destroy()
+        
+        self.column_vars.clear()
+        
+        if (self.file_data is not None and 
+            hasattr(self.file_data, 'columns') and 
+            hasattr(self.file_data, 'empty') and 
             not self.file_data.empty):
             
             try:
                 columns = self.file_data.columns.tolist()
-                
-                # Check if columns have actually changed
-                existing_columns = list(self.column_vars.keys())
-                if columns == existing_columns:
-                    # Columns haven't changed, just update sample data
-                    for col in columns:
-                        # Update sample data label
-                        sample_text = ""
-                        if len(self.file_data) > 0:
-                            try:
-                                sample_val = str(self.file_data[col].iloc[0])
-                                sample_text = sample_val[:20] + "..." if len(sample_val) > 20 else sample_val
-                            except (IndexError, KeyError, AttributeError):
-                                sample_text = "N/A"
-                        
-                        # Find the label widget for this column and update it
-                        for widget in self.column_scrollable_frame.winfo_children():
-                            if isinstance(widget, ttk.Frame):
-                                for child in widget.winfo_children():
-                                    if isinstance(child, ttk.Label) and child.cget("text").startswith(f"{col} (示例:"):
-                                        child.config(text=f"{col} (示例: {sample_text})")
-                                        break
-                    self.update_selection_count()
-                    return
-                
-                # Columns have changed, clear existing checkboxes
-                for widget in self.column_scrollable_frame.winfo_children():
-                    widget.destroy()
-                
-                self.column_vars.clear()
-                
-                # Create new checkboxes for each column
                 for i, col in enumerate(columns):
                     var = tk.BooleanVar()
                     var.trace('w', self.on_column_selection_change)
@@ -640,7 +537,7 @@ class OpenCCGUI:
                         except (IndexError, KeyError, AttributeError):
                             sample_text = "N/A"
                     
-                    col_label = ttk.Label(checkbox_frame,
+                    col_label = ttk.Label(checkbox_frame, 
                                          text=f"{col} (示例: {sample_text})")
                     col_label.grid(row=0, column=1, sticky="w", padx=(5, 0))
                     
@@ -653,23 +550,9 @@ class OpenCCGUI:
                 # Show error message when column setup fails
                 error_label = ttk.Label(self.column_scrollable_frame, text=f"列设置错误: {str(e)}")
                 error_label.grid(row=0, column=0, pady=20)
-                logger.error(f"Column selection update error: {e}")
         else:
-            # Check if we already have the "no data" message
-            existing_widgets = self.column_scrollable_frame.winfo_children()
-            if (len(existing_widgets) == 1 and
-                isinstance(existing_widgets[0], ttk.Label) and
-                existing_widgets[0].cget("text") in [ui.NO_COLUMNS_AVAILABLE, ui.NOT_APPLICABLE_FILE]):
-                # Already showing the correct message, no need to update
-                return
-                
-            # Clear existing checkboxes
-            for widget in self.column_scrollable_frame.winfo_children():
-                widget.destroy()
-            self.column_vars.clear()
-            
             # Show message when no Excel data
-            no_data_label = ttk.Label(self.column_scrollable_frame, text=ui.NO_COLUMNS_AVAILABLE)
+            no_data_label = ttk.Label(self.column_scrollable_frame, text="没有可用列")
             no_data_label.grid(row=0, column=0, pady=20)
     
     def clear_column_selection(self):
@@ -680,7 +563,7 @@ class OpenCCGUI:
         self.column_vars.clear()
         
         # Show message for non-Excel files
-        no_data_label = ttk.Label(self.column_scrollable_frame, text=ui.NOT_APPLICABLE_FILE)
+        no_data_label = ttk.Label(self.column_scrollable_frame, text="不适用于此文件类型")
         no_data_label.grid(row=0, column=0, pady=20)
         self.update_selection_count()
     
@@ -707,7 +590,7 @@ class OpenCCGUI:
         selected_count = len(self.get_selected_columns())
         total_count = len(self.column_vars)
         if hasattr(self, 'selected_count_label'):
-            self.selected_count_label.config(text=ui.SELECTED_COLUMNS_LABEL.format(selected_count, total_count))
+            self.selected_count_label.config(text=f"已选择: {selected_count}/{total_count} 列")
     
     def auto_preview(self):
         """Automatically preview conversion based on current inputs"""
@@ -722,72 +605,49 @@ class OpenCCGUI:
             # Check for direct text input first
             direct_text = self.direct_text_entry.get(1.0, tk.END).strip()
             if direct_text:
-                # Add progress indication for direct text conversion
-                self.progress_var.set("正在转换文本...")
-                self.progress_bar.configure(mode="indeterminate")
-                self.progress_bar.start(10)
-                self.root.update_idletasks()
-                
                 converted_text = self.converter.convert(direct_text)
-                
-                # Stop progress indication
-                self.progress_bar.stop()
-                self.progress_bar.configure(mode="determinate")
-                self.progress_var.set("文本转换完成！")
-                
                 # Only show converted result
                 self.preview_text.insert(tk.END, converted_text)
                 return
             
             # Check for file input
             if not self.input_file_path.get() or self.file_data is None:
-                self.preview_text.insert(tk.END, ui.PREVIEW_NO_INPUT)
+                self.preview_text.insert(tk.END, "没有提供输入。请选择文件或在上方直接输入文本。")
                 return
             
             # Check if file_data is empty DataFrame
-            if (self.file_data is not None and
-                isinstance(self.file_data, pd.DataFrame) and
-                hasattr(self.file_data, 'empty') and self.file_data.empty):
-                self.preview_text.insert(tk.END, ui.PREVIEW_EMPTY_FILE)
+            if self.file_data is not None and hasattr(self.file_data, 'empty') and self.file_data.empty:
+                self.preview_text.insert(tk.END, "文件为空或没有数据。")
                 return
             
             if self.file_type.get() == 'excel':
-                if (self.file_data is None or
-                    not isinstance(self.file_data, pd.DataFrame) or
-                    not hasattr(self.file_data, 'columns')):
-                    self.preview_text.insert(tk.END, ui.PREVIEW_INVALID_EXCEL)
+                if self.file_data is None or not hasattr(self.file_data, 'columns'):
+                    self.preview_text.insert(tk.END, "无效的 Excel 数据。")
                     return
                     
                 selected_cols = self.get_selected_columns()
                 if not selected_cols:
-                    if (hasattr(self.file_data, 'columns') and
-                        isinstance(self.file_data, pd.DataFrame)):
+                    if hasattr(self.file_data, 'columns'):
                         available_cols = ", ".join(self.file_data.columns.tolist())
-                        self.preview_text.insert(tk.END, f"{ui.PREVIEW_SELECT_COLUMN}\n\n{ui.PREVIEW_AVAILABLE_COLUMNS.format(available_cols)}")
+                        self.preview_text.insert(tk.END, f"请选择至少一列进行转换。\n\n可用列: {available_cols}")
                     else:
-                        self.preview_text.insert(tk.END, ui.PREVIEW_SELECT_COLUMN)
+                        self.preview_text.insert(tk.END, "请选择至少一列进行转换。")
                     return
                 
-                # Get configurable preview limits
-                row_limit = self.preview_row_limit.get()
-                
-                if (hasattr(self.file_data, 'head') and
-                    isinstance(self.file_data, pd.DataFrame)):
-                    preview_data = self.file_data.head(row_limit).copy()
+                if hasattr(self.file_data, 'head'):
+                    preview_data = self.file_data.head(5).copy()
                 else:
                     self.preview_text.insert(tk.END, "无效的 Excel 数据格式。")
                     return
-                    
-                # Use vectorized operations for better performance
                 for col in selected_cols:
                     if col in preview_data.columns:
                         preview_data[col] = preview_data[col].astype(str).apply(
-                            lambda x: self.converter.convert(x) if self.converter and pd.notna(x) and str(x) != 'nan' and str(x).strip() else x
+                            lambda x: self.converter.convert(x) if pd.notna(x) and str(x) != 'nan' and str(x).strip() else x
                         )
                 
                 # Display results for multiple columns
                 if len(selected_cols) == 1:
-                    self.preview_text.insert(tk.END, ui.PREVIEW_COLUMN_RESULT_HEADER_SINGLE.format(selected_cols[0], row_limit))
+                    self.preview_text.insert(tk.END, f"列 '{selected_cols[0]}' 的转换结果（前5行）：\n")
                     self.preview_text.insert(tk.END, "=" * 40 + "\n")
                     # Only show the converted column values
                     if selected_cols[0] in preview_data.columns:
@@ -796,7 +656,7 @@ class OpenCCGUI:
                     else:
                         self.preview_text.insert(tk.END, "所选列不存在于数据中。\n")
                 else:
-                    self.preview_text.insert(tk.END, ui.PREVIEW_COLUMN_RESULT_HEADER_MULTI.format(len(selected_cols), row_limit))
+                    self.preview_text.insert(tk.END, f"多列转换结果（{len(selected_cols)}列，前5行）：\n")
                     self.preview_text.insert(tk.END, "=" * 50 + "\n")
                     
                     # Show column headers
@@ -805,7 +665,7 @@ class OpenCCGUI:
                     self.preview_text.insert(tk.END, "-" * 50 + "\n")
                     
                     # Show data rows
-                    for idx in range(min(row_limit, len(preview_data))):
+                    for idx in range(min(5, len(preview_data))):
                         row_values = []
                         for col in selected_cols:
                             if col in preview_data.columns:
@@ -825,20 +685,18 @@ class OpenCCGUI:
                 
             else:  # Word or Text files
                 if isinstance(self.file_data, str):
-                    text_limit = self.preview_text_limit.get()
-                    sample_text = self.file_data[:text_limit] if len(self.file_data) > text_limit else self.file_data
+                    sample_text = self.file_data[:500] if len(self.file_data) > 500 else self.file_data
                     converted_text = self.converter.convert(sample_text)
                     
                     # Only show converted result
-                    self.preview_text.insert(tk.END, ui.PREVIEW_RESULT_HEADER.format(text_limit))
+                    self.preview_text.insert(tk.END, "文件转换结果（前500字符）：\n")
                     self.preview_text.insert(tk.END, "=" * 30 + "\n")
                     self.preview_text.insert(tk.END, converted_text)
                 else:
-                    self.preview_text.insert(tk.END, ui.PREVIEW_INVALID_TEXT)
+                    self.preview_text.insert(tk.END, "无效的文本数据。")
         
         except Exception as e:
             self.preview_text.insert(tk.END, f"预览错误: {str(e)}")
-            logger.error(f"Auto preview error: {e}")
     
     def convert_file(self):
         """Convert the entire file or direct text input"""
@@ -847,56 +705,32 @@ class OpenCCGUI:
         if direct_text:
             try:
                 if not self.converter:
-                    messagebox.showerror(ui.WARNING_NO_CONVERTER, ui.WARNING_NO_CONVERTER_MSG)
+                    messagebox.showerror("错误", "转换器未初始化。")
                     return
                 
-                # Add to undo stack
-                self.undo_stack.append(("direct_text", direct_text))
-                self.redo_stack.clear()
-                
-                # Add progress indication for direct text conversion
-                self.progress_var.set("正在转换文本...")
-                self.progress_bar.configure(mode="indeterminate")
-                self.progress_bar.start(10)
-                self.root.update_idletasks()
-                
                 converted_text = self.converter.convert(direct_text)
-                
-                # Stop progress indication
-                self.progress_bar.stop()
-                self.progress_bar.configure(mode="determinate")
-                
                 self.preview_text.delete(1.0, tk.END)
-                # Only show converted result within the text limit
-                text_limit = self.preview_text_limit.get()
-                display_text = converted_text[:text_limit] if len(converted_text) > text_limit else converted_text
-                self.preview_text.insert(tk.END, display_text)
+                # Only show converted result
+                self.preview_text.insert(tk.END, converted_text)
                 self.progress_var.set("直接文本转换完成！")
-                messagebox.showinfo(ui.SUCCESS_TEXT_CONVERSION, ui.SUCCESS_TEXT_CONVERSION_MSG)
+                messagebox.showinfo("成功", "文本转换成功！您可以从预览区域复制结果。")
                 return
             except Exception as e:
-                self.progress_bar.stop()
-                self.progress_bar.configure(mode="determinate")
-                messagebox.showerror(ui.ERROR_TEXT_CONVERSION, ui.ERROR_TEXT_CONVERSION_MSG.format(str(e)))
-                logger.error(f"Direct text conversion error: {e}")
+                messagebox.showerror("转换错误", f"文本转换失败: {str(e)}")
                 return
         
         # Otherwise proceed with file conversion
         if not self.input_file_path.get():
-            messagebox.showwarning(ui.WARNING_NO_INPUT, ui.WARNING_NO_INPUT_MSG)
+            messagebox.showwarning("警告", "请选择输入文件或直接输入文本。")
             return
         
         if not self.output_file_path.get():
-            messagebox.showwarning(ui.WARNING_NO_OUTPUT, ui.WARNING_NO_OUTPUT_MSG)
+            messagebox.showwarning("警告", "请指定输出文件。")
             return
         
         if not self.converter:
-            messagebox.showerror(ui.WARNING_NO_CONVERTER, ui.WARNING_NO_CONVERTER_MSG)
+            messagebox.showerror("错误", "转换器未初始化。")
             return
-        
-        # Add to undo stack
-        self.undo_stack.append(("file", self.input_file_path.get(), self.output_file_path.get()))
-        self.redo_stack.clear()
         
         # Run conversion in separate thread to avoid freezing GUI
         thread = threading.Thread(target=self._convert_file_worker)
@@ -909,53 +743,52 @@ class OpenCCGUI:
             # Update UI in main thread
             self.root.after(0, lambda: self.progress_bar.configure(mode="determinate"))
             self.root.after(0, lambda: self.progress_bar.configure(value=0))
-            self.root.after(0, lambda: self.progress_var.set(ui.PROGRESS_CONVERTING_FILE))
+            self.root.after(0, lambda: self.progress_var.set("正在转换文件..."))
             
             if self.file_type.get() == 'excel':
-                if (self.file_data is None or
-                    not isinstance(self.file_data, pd.DataFrame) or
-                    not hasattr(self.file_data, 'columns')):
-                    self.root.after(0, lambda: messagebox.showerror(ui.WARNING_NO_CONVERTER, "无效的 Excel 数据。"))
+                if self.file_data is None or not hasattr(self.file_data, 'columns'):
+                    self.root.after(0, lambda: messagebox.showerror("错误", "无效的 Excel 数据。"))
                     return
                     
                 selected_cols = self.get_selected_columns()
                 if not selected_cols:
-                    self.root.after(0, lambda: messagebox.showwarning(ui.WARNING_NO_COLUMN, ui.WARNING_NO_COLUMN_MSG))
+                    self.root.after(0, lambda: messagebox.showwarning("警告", "请选择至少一列进行转换。"))
                     return
                 
-                # Convert Excel file - multiple columns using vectorized operations
-                if (hasattr(self.file_data, 'copy') and
-                    isinstance(self.file_data, pd.DataFrame)):
+                # Convert Excel file - multiple columns
+                if hasattr(self.file_data, 'copy'):
                     converted_data = self.file_data.copy()
                 else:
-                    self.root.after(0, lambda: messagebox.showerror(ui.WARNING_NO_CONVERTER, "无法复制 Excel 数据。"))
+                    self.root.after(0, lambda: messagebox.showerror("错误", "无法复制 Excel 数据。"))
                     return
-                    
                 total_rows = len(converted_data)
                 total_operations = total_rows * len(selected_cols)
                 current_operation = 0
                 
-                # Use vectorized operations for better performance
-                for col in selected_cols:
+                for col_idx, col in enumerate(selected_cols):
                     if hasattr(converted_data, 'columns') and col in converted_data.columns:
-                        # Apply conversion to entire column at once
-                        mask = converted_data[col].notna() & (converted_data[col].astype(str) != 'nan') & (converted_data[col].astype(str).str.strip() != '')
-                        converted_data.loc[mask, col] = converted_data.loc[mask, col].astype(str).apply(
-                            lambda x: self.converter.convert(x) if self.converter else x
-                        )
-                        
-                        # Update progress for the column
-                        current_operation += total_rows
-                        progress_percentage = int(current_operation / total_operations * 100)
-                        progress_msg = f"正在转换列 '{col}' ({selected_cols.index(col)+1}/{len(selected_cols)}) ({progress_percentage}%)"
-                        self.root.after(0, lambda msg=progress_msg: self.progress_var.set(msg))
-                        self.root.after(0, lambda pct=progress_percentage: self.progress_bar.configure(value=pct))
+                        for row_idx in range(len(converted_data)):
+                            try:
+                                col_loc = converted_data.columns.get_loc(col)
+                                value = converted_data.iloc[row_idx, col_loc]
+                                if pd.notna(value) and str(value) != 'nan' and str(value).strip():
+                                    converted_data.iloc[row_idx, col_loc] = self.converter.convert(str(value))
+                            except (IndexError, KeyError, AttributeError) as e:
+                                # Skip problematic cells and continue
+                                continue
+                            
+                            current_operation += 1
+                            # Update progress
+                            progress_percentage = int(current_operation / total_operations * 100)
+                            progress_msg = f"正在转换列 '{col}' ({col_idx+1}/{len(selected_cols)}): {row_idx+1}/{total_rows} ({progress_percentage}%)"
+                            self.root.after(0, lambda msg=progress_msg: self.progress_var.set(msg))
+                            self.root.after(0, lambda pct=progress_percentage: self.progress_bar.configure(value=pct))
                 
                 # Save Excel file
                 if hasattr(converted_data, 'to_excel'):
                     converted_data.to_excel(self.output_file_path.get(), index=False)
                 else:
-                    self.root.after(0, lambda: messagebox.showerror(ui.WARNING_NO_CONVERTER, "无法保存 Excel 文件。"))
+                    self.root.after(0, lambda: messagebox.showerror("错误", "无法保存 Excel 文件。"))
                     return
                 
             elif self.file_type.get() == 'word':
@@ -970,12 +803,10 @@ class OpenCCGUI:
                 
                 processed = 0
                 
-                # Convert paragraphs
-                for i, paragraph in enumerate(doc.paragraphs):
-                    if paragraph.text.strip() and self.converter:
+                for paragraph in doc.paragraphs:
+                    if paragraph.text.strip():
                         original_text = paragraph.text
                         converted_text = self.converter.convert(original_text)
-                        # Store converted text to apply later
                         paragraph.text = converted_text
                     
                     processed += 1
@@ -987,10 +818,9 @@ class OpenCCGUI:
                 for table in doc.tables:
                     for row in table.rows:
                         for cell in row.cells:
-                            if cell.text.strip() and self.converter:
+                            if cell.text.strip():
                                 original_text = cell.text
                                 converted_text = self.converter.convert(original_text)
-                                # Store converted text to apply later
                                 cell.text = converted_text
                             
                             processed += 1
@@ -998,38 +828,36 @@ class OpenCCGUI:
                             self.root.after(0, lambda pct=progress_percentage: self.progress_bar.configure(value=pct))
                             self.root.after(0, lambda p=processed, t=total_elements: self.progress_var.set(f"正在转换表格: {p}/{t}"))
                 
-                # Save document in main thread
-                self.root.after(0, lambda: doc.save(self.output_file_path.get()))
+                doc.save(self.output_file_path.get())
                 
             elif self.file_type.get() == 'text':
                 # Convert text file
-                if isinstance(self.file_data, str) and self.converter:
-                    self.root.after(0, lambda: self.progress_var.set(ui.PROGRESS_CONVERTING_TEXT_FILE))
+                if isinstance(self.file_data, str):
+                    self.root.after(0, lambda: self.progress_var.set("正在转换文本文件..."))
                     self.root.after(0, lambda: self.progress_bar.configure(value=50))
                     
                     converted_text = self.converter.convert(self.file_data)
                     
                     self.root.after(0, lambda: self.progress_bar.configure(value=80))
-                    self.root.after(0, lambda: self.progress_var.set(ui.PROGRESS_SAVING_FILE))
+                    self.root.after(0, lambda: self.progress_var.set("正在保存转换后的文件..."))
                     
                     with open(self.output_file_path.get(), 'w', encoding='utf-8') as f:
                         f.write(converted_text)
                     
                     self.root.after(0, lambda: self.progress_bar.configure(value=100))
                 else:
-                    self.root.after(0, lambda: messagebox.showerror(ui.WARNING_NO_CONVERTER, "无效的文本数据。"))
+                    self.root.after(0, lambda: messagebox.showerror("错误", "无效的文本数据。"))
                     return
             
             # Success
             self.root.after(0, lambda: self.progress_bar.configure(value=100))
-            self.root.after(0, lambda: self.progress_var.set(ui.PROGRESS_COMPLETED))
-            self.root.after(0, lambda: messagebox.showinfo(ui.SUCCESS_CONVERSION, ui.SUCCESS_CONVERSION_MSG.format(self.output_file_path.get())))
+            self.root.after(0, lambda: self.progress_var.set("转换完成！"))
+            self.root.after(0, lambda: messagebox.showinfo("成功", f"文件转换成功！\n已保存至: {self.output_file_path.get()}"))
             
         except Exception as e:
             self.root.after(0, lambda: self.progress_bar.configure(value=0))
-            self.root.after(0, lambda: self.progress_var.set(ui.PROGRESS_FAILED))
-            self.root.after(0, lambda: messagebox.showerror(ui.ERROR_CONVERSION, ui.ERROR_CONVERSION_MSG.format(str(e))))
-            logger.error(f"File conversion error: {e}")
+            self.root.after(0, lambda: self.progress_var.set("转换失败"))
+            self.root.after(0, lambda: messagebox.showerror("转换错误", f"文件转换失败: {str(e)}"))
     
     def clear_all(self):
         """Clear all inputs and reset the interface"""
@@ -1041,14 +869,14 @@ class OpenCCGUI:
         self.clear_column_selection()
         # Reset column selection count display
         if hasattr(self, 'selected_count_label'):
-            self.selected_count_label.config(text=ui.SELECTED_COLUMNS_LABEL.format(0))
-        self.progress_var.set(ui.PROGRESS_READY)
+            self.selected_count_label.config(text="已选择: 0 列")
+        self.progress_var.set("就绪")
         self.progress_bar.configure(value=0)
         
         # Reset conversion settings to defaults
-        self.source_type.set(ui.TYPE_SIMPLIFIED)
-        self.target_type.set(ui.TYPE_TRADITIONAL)
-        self.variant_standard.set(ui.VARIANT_TW)
+        self.source_type.set("简体")
+        self.target_type.set("繁体")
+        self.variant_standard.set("台湾标准")
         self.convert_phrases.set(True)
         
         # Reset tracking variables
@@ -1056,42 +884,8 @@ class OpenCCGUI:
         self.last_input_file = ""
         self.last_direct_text = ""
         
-        # Clear undo/redo stacks
-        self.undo_stack.clear()
-        self.redo_stack.clear()
-        
         # Update converter
         self.update_converter()
-    
-    def undo_action(self, event=None):
-        """Undo the last action"""
-        if self.undo_stack:
-            action = self.undo_stack.pop()
-            self.redo_stack.append(action)
-            
-            if action[0] == "direct_text":
-                # Restore direct text
-                self.direct_text_entry.delete(1.0, tk.END)
-                self.direct_text_entry.insert(tk.END, action[1])
-            elif action[0] == "file":
-                # Restore file paths
-                self.input_file_path.set(action[1])
-                self.output_file_path.set(action[2])
-    
-    def redo_action(self, event=None):
-        """Redo the last undone action"""
-        if self.redo_stack:
-            action = self.redo_stack.pop()
-            self.undo_stack.append(action)
-            
-            if action[0] == "direct_text":
-                # Restore direct text
-                self.direct_text_entry.delete(1.0, tk.END)
-                self.direct_text_entry.insert(tk.END, action[1])
-            elif action[0] == "file":
-                # Restore file paths
-                self.input_file_path.set(action[1])
-                self.output_file_path.set(action[2])
 
 
 def main():
@@ -1102,7 +896,6 @@ def main():
             ctypes.windll.user32.ShowWindow(ctypes.windll.kernel32.GetConsoleWindow(), 0)
         except Exception as e:
             print(f"Warning: Failed to hide console window: {e}")
-            logger.warning(f"Failed to hide console window: {e}")
     
     root = tk.Tk()
     app = OpenCCGUI(root)
